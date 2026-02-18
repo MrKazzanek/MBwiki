@@ -7,28 +7,68 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <main>
-     <header>
-        <div id="logo">MBwiki</div>
-     </header>
-     <div id="content">
-        <div id="leftPanel">
-            <input type="text" id="searchInput" placeholder="Search blocks...">
-            <div id="blockCount" style="color: #bbb; font-size: 14px;"></div>
-            <div id="blockList"></div>
-        </div>
-        <div id="rightPanel">
 
+    <!-- NETLIFY FORM (MUSI BYĆ W HTML) -->
+    <form name="bug-report" method="POST" data-netlify="true" netlify-honeypot="bot-field" hidden>
+        <input type="hidden" name="form-name" value="bug-report">
+        <input type="text" name="block-name">
+        <input type="text" name="block-id">
+        <textarea name="description"></textarea>
+        <textarea name="additional-details"></textarea>
+        <input type="text" name="nickname">
+    </form>
+
+    <main>
+        <header>
+            <div id="logo">MBwiki</div>
+        </header>
+
+        <div id="content">
+            <div id="leftPanel">
+                <input type="text" id="searchInput" placeholder="Search blocks...">
+                <div id="blockCount"></div>
+                <div id="blockList"></div>
+            </div>
+
+            <div id="rightPanel"></div>
         </div>
-     </div>
     </main>
+
     <footer>
         <div id="footerContent">
             Website created by QozaWorks
         </div>
     </footer>
 
-    <script src="script.js"></script>
+    <!-- MODAL -->
+    <div id="bugReportModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Report a Bug</h2>
+
+            <form id="bugReportForm" name="bug-report" method="POST" data-netlify="true">
+                <input type="hidden" name="form-name" value="bug-report">
+                <input type="hidden" id="bug-block-id-hidden" name="block-id">
+
+                <label>Block Name:</label>
+                <input type="text" id="block-name-bug" name="block-name" readonly>
+
+                <label>Description:</label>
+                <textarea name="description" required></textarea>
+
+                <label>Additional Details:</label>
+                <textarea name="additional-details"></textarea>
+
+                <label>Nickname:</label>
+                <input type="text" name="nickname">
+
+                <button type="submit" class="submit-button">Send Report</button>
+            </form>
+        </div>
+    </div>
+
     <div id="toastNotification">Bug report submitted successfully!</div>
+
+    <script src="script.js"></script>
 </body>
 </html>
