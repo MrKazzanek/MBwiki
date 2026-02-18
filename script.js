@@ -25,7 +25,6 @@ async function init() {
 
         renderBlockList(allBlocks);
         setupSearch();
-        setupBugReportModal(); // Setup bug report modal
 
         if (allBlocks.length > 0) {
             // Automatically select and show details for the first block
@@ -115,7 +114,6 @@ function showBlockDetails(block) {
     const namespace = block[namespaceId] || 'minecraft';
     const blockIdValue = block[blockIdField] || '';
 
-
     let detailsHtml = `
         <div class="block-details">
             <div class="block-header">
@@ -131,9 +129,8 @@ function showBlockDetails(block) {
 
     // Iterate through schema to show all fields directly
     database.schema.forEach(field => {
-        // Skip Name and Texture as they are in the header
-        // Skip Namespace and ID as they are combined in block-id-display
-        if (field.id === nameId || field.id === textureId || field.id === namespaceId || field.id === blockIdField) return;
+        // Skip Name, Texture, Namespace, ID
+        if ([nameId, textureId, namespaceId, blockIdField].includes(field.id)) return;
 
         const value = block[field.id];
         if (value !== undefined && value !== null && value !== '') {
@@ -153,9 +150,9 @@ function showBlockDetails(block) {
 
     rightPanel.innerHTML = detailsHtml;
 
-    // Attach event listener for the bug report button after it's rendered
+    // Attach event listener for the bug report button
     document.getElementById('reportBugButton').addEventListener('click', () => {
-        openBugReportModal(name); // Pass only name
+        openBugReportModal(name);
     });
 }
 
@@ -164,7 +161,6 @@ function formatValue(value, field) {
         return value ? '<span style="color: #4caf50; font-weight: bold;">Yes</span>' : '<span style="color: #f44336; font-weight: bold;">No</span>';
     }
     if (field.type === 'image') {
-        // If it's the main texture, it's handled in the header. Other images might be rendered here.
         return `<img src="${value}" style="max-width: 100%; height: auto; image-rendering: pixelated; border: 1px solid #444; border-radius: 4px; padding: 5px; background-color: #111;">`;
     }
     if (field.type === 'select' && field.isMulti) {
@@ -172,80 +168,26 @@ function formatValue(value, field) {
         if (tags.length === 0) return 'None';
         return tags.map(tag => `<span class="tag-pill">${tag}</span>`).join('');
     }
-    if (field.name === 'Hardness' || field.name === 'Resistance' || field.name === 'Light Level' || field.name === 'Stack Size') {
+    if (['Hardness','Resistance','Light Level','Stack Size'].includes(field.name)) {
         return `<span style="font-weight: bold;">${value}</span>`;
     }
-    // Default formatting
     return value;
 }
 
-// Bug Report Modal Functions
-function setupBugReportModal() {
-    const modalHtml = `
-        <div id="bugReportModal" class="modal">
-            <div class="modal-content">
-                <span class="close-button">&times;</span>
-                <h2>Report a Bug</h2>
-                <form name="bug-report" method="POST" data-netlify="true" netlify-honeypot="bot-field">
-                    <input type="hidden" name="form-name" value="bug-report" />
-                    <input type="hidden" id="bug-block-id-hidden" name="block-id">
-                    <p class="hidden">
-                        <label>Don’t fill this out if you’re human: <input name="bot-field" /></label>
-                    </p>
-                    <label for="block-name-bug">Block Name:</label>
-                    <input type="text" id="block-name-bug" name="block-name" readonly>
-
-                    <label for="bug-description">Description of Bug:</label>
-                    <textarea id="bug-description" name="description" required></textarea>
-
-                    <label for="bug-additional-details">Additional Details (Steps to Reproduce, Expected/Actual Behavior - optional):</label>
-                    <textarea id="bug-additional-details" name="additional-details"></textarea>
-
-                    <label for="user-nickname-bug">Your Nickname (optional):</label>
-                    <input type="text" id="user-nickname-bug" name="nickname">
-
-                    <button type="submit" class="submit-button">Send Report</button>
-                </form>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-    const modal = document.getElementById('bugReportModal');
-    const closeButton = modal.querySelector('.close-button');
-    const form = modal.querySelector('form');
-
-    closeButton.onclick = () => {
-        modal.classList.remove('show');
-    };
-    window.onclick = (event) => {
-        if (event.target === modal) {
-            modal.classList.remove('show');
-        }
-    };
-
-    form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        // Here, the form will be submitted by Netlify Forms.
-        // We just handle the UI feedback.
-        modal.classList.remove('show');
-        showToastNotification('Bug report submitted successfully! Thank you.');
-        form.reset(); // Clear form fields
-    });
-}
-
+// -------------------------
+// BUG REPORT MODAL & NETLIFY FORM
+// -------------------------
 function openBugReportModal(blockName) {
     const modal = document.getElementById('bugReportModal');
     const blockNameInput = modal.querySelector('#block-name-bug');
     const blockIdHiddenInput = modal.querySelector('#bug-block-id-hidden');
 
-    // Get the currently displayed block's ID to include it in the hidden field
     const currentBlockElement = document.querySelector('.block-item.active');
     const blockId = currentBlockElement ? currentBlockElement.dataset.blockId : 'N/A';
 
     blockNameInput.value = blockName;
     blockIdHiddenInput.value = blockId;
-    
+
     modal.classList.add('show');
 }
 
@@ -255,7 +197,38 @@ function showToastNotification(message) {
     toast.classList.add('show');
     setTimeout(() => {
         toast.classList.remove('show');
-    }, 3000); // Hide after 3 seconds
+    }, 3000);
 }
+
+// -------------------------
+// Netlify form submission
+// -------------------------
+document.addEventListener("DOMContentLoaded", () => {
+    const modal = document.getElementById('bugReportModal');
+    const closeButton = modal.querySelector('.close-button');
+    const form = document.getElementById('bugReportForm');
+
+    closeButton.onclick = () => modal.classList.remove('show');
+
+    window.onclick = (event) => {
+        if (event.target === modal) modal.classList.remove('show');
+    };
+
+    form.addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const formData = new FormData(form);
+
+        await fetch("/", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams(formData).toString()
+        });
+
+        modal.classList.remove("show");
+        showToastNotification("Bug report submitted successfully!");
+        form.reset();
+    });
+});
 
 init();
